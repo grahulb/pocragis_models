@@ -125,18 +125,26 @@ class PocraSMModelSimulation:
 
 		self.waters = [None]*self.simulation_length
 
+		self._direct_param_access = {}
+
 
 	def __getattr__(self, name):
-		if name in [
-			'pri_runoff', 'infil', 'aet', 'sec_runoff', 'gw_rech', 'avail_sm', 'pet'
-		]:
-			return [getattr(w, name) for w in self.waters]
-		if name in [
-			'rain', 'et0', 'temp_daily_min', 'temp_daily_avg', 'temp_daily_max',
-			'r_a', 'temp_hourly_avg', 'rh_hourly_avg', 'wind_hourly_avg',
-			'latitude',	'elevation', 'longitude', 'day_of_year', 'hour_of_day'
-		]:
-			return [getattr(w, name) for w in self.weathers]
+
+		if name in self._direct_param_access:
+			return self._direct_param_access[name]
+		else:
+			if name in [
+				'pri_runoff', 'infil', 'aet', 'sec_runoff', 'gw_rech', 'avail_sm', 'pet'
+			]:
+				value = [getattr(w, name) for w in self.waters]
+			elif name in [
+				'rain', 'et0', 'temp_daily_min', 'temp_daily_avg', 'temp_daily_max',
+				'r_a', 'temp_hourly_avg', 'rh_hourly_avg', 'wind_hourly_avg',
+				'latitude',	'elevation', 'longitude', 'day_of_year', 'hour_of_day'
+			]:
+				value = [getattr(w, name) for w in self.weathers]
+			self._direct_param_access[name] = value
+			return value
 	
 
 	def computation_before_iteration(self):

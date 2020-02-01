@@ -112,14 +112,18 @@ for d in data:
 
 	hourly_psmm_sim.run()
 
-	with open(f'{d["rain_circle"]}_example_output.csv', 'w', newline='') as f:
+	with open(f'{d["rain_circle"].replace(" ", "_")}_example_output.csv', 'w', newline='') as f:
+		print(f'Writing output for {d["rain_circle"]}...')
 		fieldnames = ['date-time', 'rain', 'temp_daily_min', 'temp_hourly_avg', 'temp_daily_max', 'rh_hourly_avg', 'wind_hourly_avg', 'r_a', 'et0']
 		writer = csv.writer(f)
 		writer.writerow(fieldnames)
 		s = hourly_psmm_sim
 		writer.writerows([[
-			datetime(2018, 1, 1) + timedelta(days=s.day_of_year[i]-1, hours=s.hour_of_day[i]-1), *[round(v, 2) for v in [
+			datetime(2018, 6, 1) + timedelta(
+				days=s.day_of_year[i] + (-152 if s.day_of_year[i]>=152 else 213),
+				hours=s.hour_of_day[i]-1
+			), *[round(v, 2) for v in [
 				s.rain[i], s.temp_daily_min[i], s.temp_hourly_avg[i], s.temp_daily_max[i],
-				s.rh_hourly_avg[i], s.wind_hourly_avg[i], s.r_a[i], s.et0[i]]
-		]] for i in range(365*24)])
-	# print(hourly_psmm_sim.et0)
+				s.rh_hourly_avg[i], s.wind_hourly_avg[i], s.r_a[i], s.et0[i]
+			]]
+		] for i in range(365*24)])
