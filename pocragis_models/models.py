@@ -282,9 +282,9 @@ class Weather:
 		temp_avg_k = temp_hourly_avg + 273.15
 		R_so = (0.75 + 2*(10**(-5))*elevation) * r_a
 		if R_so == 0:
-			R_nl = Weather.sigma * (temp_avg_k**4) * (0.34 - 0.14*(e_a)) * (1.35*0.5 - 0.35)
+			R_nl = Weather.sigma * (temp_avg_k**4) * (0.34 - 0.14*((e_a)**0.5)) * (1.35*0.5 - 0.35)
 		else:
-			R_nl = Weather.sigma * (temp_avg_k**4) * (0.34 - 0.14*(e_a)) * (1.35*R_s/R_so - 0.35)
+			R_nl = Weather.sigma * (temp_avg_k**4) * (0.34 - 0.14*((e_a)**0.5)) * (1.35*R_s/R_so - 0.35)
 		R_n = R_ns - R_nl
 
 		## currently, not using <N> to determine <G_hr>;
