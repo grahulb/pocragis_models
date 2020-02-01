@@ -131,9 +131,11 @@ class PocraSMModelSimulation:
 			'pri_runoff', 'infil', 'aet', 'sec_runoff', 'gw_rech', 'avail_sm', 'pet'
 		]:
 			return [getattr(w, name) for w in self.waters]
-		if name in ['rain', 'et0'] or (
-			name in ['temp_daily_min', 'temp_daily_avg', 'temp_daily_max', 'r_a'] and hasattr(self.weathers[0], name)
-		):
+		if name in [
+			'rain', 'et0', 'temp_daily_min', 'temp_daily_avg', 'temp_daily_max',
+			'r_a', 'temp_hourly_avg', 'rh_hourly_avg', 'wind_hourly_avg',
+			'latitude',	'elevation', 'longitude', 'day_of_year', 'hour_of_day'
+		]:
 			return [getattr(w, name) for w in self.weathers]
 	
 

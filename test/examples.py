@@ -1,9 +1,10 @@
 import csv
+from datetime import datetime, timedelta
 
 import pocragis_models.simulate as pgm_simulate
 
 
-with open('example_data.csv', 'r', newline='') as f:
+with open('example_input_data.csv', 'r', newline='') as f:
 	data = list(csv.DictReader(f))
 
 
@@ -16,7 +17,6 @@ for d in data:
 		d[p] = []
 		for dd in daily_data:
 			d[p].extend([float(v.strip(" '")) for v in dd.strip(' ,[]').split(',')])
-	print(d['rain'], len(d['rain'])/24)
 
 	# daily_psmm_sim = pgm_simulate.PocraSMModelSimulation(
 	# 	soil_texture='clayey', soil_depth_category='deep to very deep (> 50 cm)', lulc_type='kharif', slope=3,
@@ -62,7 +62,7 @@ for d in data:
 
 	daily_psmm_sim.run()
 
-	print(daily_psmm_sim.aet)
+	# print(daily_psmm_sim.aet)
 
 
 	# hourly_psmm_sim = pgm_simulate.PocraSMModelSimulation(
@@ -112,4 +112,14 @@ for d in data:
 
 	hourly_psmm_sim.run()
 
-	print(hourly_psmm_sim.aet)
+	with open(f'{d["rain_circle"]}_example_output.csv', 'w', newline='') as f:
+		fieldnames = ['date-time', 'rain', 'temp_daily_min', 'temp_hourly_avg', 'temp_daily_max', 'rh_hourly_avg', 'wind_hourly_avg', 'r_a', 'et0']
+		writer = csv.writer(f)
+		writer.writerow(fieldnames)
+		s = hourly_psmm_sim
+		writer.writerows([[
+			datetime(2018, 1, 1) + timedelta(days=s.day_of_year[i]-1, hours=s.hour_of_day[i]-1), *[round(v, 2) for v in [
+				s.rain[i], s.temp_daily_min[i], s.temp_hourly_avg[i], s.temp_daily_max[i],
+				s.rh_hourly_avg[i], s.wind_hourly_avg[i], s.r_a[i], s.et0[i]]
+		]] for i in range(365*24)])
+	# print(hourly_psmm_sim.et0)

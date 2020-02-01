@@ -244,10 +244,10 @@ class Weather:
 	def get_pocra_hourly_radiation(latitude, longitude, day_of_year, hour):
 
 		doy_in_radians, d_r, phi, delta, omega_s = Weather.get_intermediates(latitude, day_of_year)
-		b = doy_in_radians * (day_of_year-81)
+		b = (2*math.pi/364) * (day_of_year-81)
 		S_c = (0.1645 * math.sin(2*b)) - (0.1255 * math.cos(b)) - (0.025 * math.sin(b))
 		t = hour - 0.5
-		omega = (math.pi/12) * ((t + 0.06667 * (360-longitude) + S_c) - 12)
+		omega = (math.pi/12) * ((t + 0.06667 * (277.5 - (360-longitude)) + S_c) - 12)
 		
 		if abs(omega) > omega_s:
 			r_a = 0
@@ -272,7 +272,7 @@ class Weather:
 		r_a=None, longitude=None, hour=None
 	):
 
-		e_0_T_hr = 0.6108 * math.exp(17.27/(temp_hourly_avg+237.3))
+		e_0_T_hr = 0.6108 * math.exp(17.27*temp_hourly_avg/(temp_hourly_avg+237.3))
 		e_a = e_0_T_hr * rh_hourly_avg/100
 
 		r_a = r_a or Weather.get_pocra_hourly_radiation(latitude, longitude, day_of_year, hour)
