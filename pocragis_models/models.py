@@ -426,70 +426,196 @@ class Water:
 			Water(pri_runoff, infil, aet, sec_runoff, gw_rech, avail_sm, pet),
 			{'sm1_frac': new_sm1_frac, 'sm2_frac': new_sm2_frac},
 		)
-	# @staticmethod
-	# def run_pocra_sm_model_for_time_step(
-	# 	layer_1_thickness, layer_2_thickness, # layer-dimensions
-	# 	prev_avail_sm, sm1_frac, sm2_frac, # soil-moisture state at day-start
-	# 	wp, fc, sat, smax, w1, w2, perc_factor, # soil-properties
-	# 	depletion_factor, # parameter determined only by crop
-	# 	rain, # parameter determined only by weather
-	# 	pet # parameter determined by weather and crop
-	# ):
-	# 	l1 = layer_1_thickness
-	# 	l2 = layer_2_thickness
-
-	# 	####### pri_runoff #######
-	# 	s_swat = smax * ( 1 - 
-	# 		prev_avail_sm / ( prev_avail_sm + math.exp(w1 - w2 * prev_avail_sm) )
-	# 	)
-	# 	ia_swat = 0.2 * s_swat
-	# 	if rain <= ia_swat:
-	# 		pri_runoff = 0
-	# 	else:
-	# 		pri_runoff = ((rain - ia_swat)**2 ) / (rain + 0.8*s_swat)
-		
-	# 	####### infil #######
-	# 	infil = rain - pri_runoff
-		
-	# 	####### aet #######
-	# 	if (sm1_frac < wp):
-	# 		ks = 0
-	# 	elif ( sm1_frac > (fc * (1-depletion_factor) + depletion_factor * wp) ):
-	# 		ks = 1
-	# 	else:
-	# 		ks = (sm1_frac - wp) / (fc - wp) / (1-depletion_factor)
-	# 	aet = ks * pet
-		
-	# 	# sm1_before r_to_second_layer(in metres) and sm2_before gw_rech
-	# 	sm1_before = ((sm1_frac * l1) + ((infil - aet) / 1000)) / l1
-	# 	if (sm1_before < fc):
-	# 		r_to_second_layer = 0
-	# 	elif (sm2_frac < sat):
-	# 		r_to_second_layer = min(
-	# 			(sat - sm2_frac) * l2,
-	# 			(sm1_before - fc) * l1 * perc_factor
-	# 		)
-	# 	else:
-	# 		r_to_second_layer = 0
-	# 	sm2_before = (sm2_frac * l2 + r_to_second_layer) / l2
-		
-	# 	####### sec_runoff #######
-	# 	candidate_new_sm1_frac = (sm1_before * l1 - r_to_second_layer) / l1
-	# 	candidate_sec_runoff = ( candidate_new_sm1_frac - sat ) * l1 * 1000
-	# 	sec_runoff = max(candidate_sec_runoff, 0)
-	# 	new_sm1_frac = min(candidate_new_sm1_frac, sat)
-		
-	# 	####### gw_rech #######
-	# 	candidate_gw_rech = (sm2_before - fc) * l2 * perc_factor * 1000
-	# 	gw_rech = max(candidate_gw_rech, 0)
-	# 	candidate_sm2_frac = (sm2_before * l2 - gw_rech / 1000) / l2
-	# 	new_sm2_frac = min(candidate_sm2_frac, sat)
-
-	# 	####### avail_sm #######
-	# 	avail_sm = (new_sm1_frac * l1 + new_sm2_frac * l2 - wp * (l1+l2)) * 1000
 
 
-	# 	return (
-	# 		Water(pri_runoff, infil, aet, sec_runoff, gw_rech, avail_sm, pet),
-	# 		{'avail_sm': avail_sm, 'sm1_frac': new_sm1_frac, 'sm2_frac': new_sm2_frac},
-	# 	)
+
+class Drainage:
+	"""
+	This class represents a surface drainage-network.
+	"""
+
+	Time_step_duration = 3600
+
+	class Stream:
+		"""
+		This class represents a surface-channel segment carrying overland-flow.
+		
+		Models a stream, both in terms of its channel and
+		the transient properties related to the flow in it.
+		"""
+
+
+		class Channel:
+			"""Holds static characteristics of stream's channel"""
+
+			def __init__(s,
+				# extrinsic
+				watershed_area=None, length=None, width_bottom=None, channel_slope=None,
+				fraction_deep_aquifer=None,
+				# intrinsic
+				zch=None, hydraulic_conductivity=None, evaporation_coefficient=None,
+				mannigs=None, bank_flow_recession=None, potential_evaporation=None,
+				
+			):
+				s.watershed_area = watershed_area
+				s.length = length
+				s.width_bottom = width_bottom
+				s.channel_slope = channel_slope
+				s.fraction_deep_aquifer = fraction_deep_aquifer
+				s.zch = zch
+				s.hydraulic_conductivity = hydraulic_conductivity
+				s.evaporation_coefficient = evaporation_coefficient
+				s.mannigs = mannigs
+				s.bank_flow_recession = bank_flow_recession
+				s.potential_evaporation = potential_evaporation
+
+
+		class Transient:
+			"""Holds dynamic properties (i.e. which change over time)"""
+
+			def __init__(s,
+				# volumes
+				runoff_per_area_in_watershed=None, swat_runoff=None, total_volume_stored=None,
+				volume_in=None, discharge=None,	transmission_loss=None, bankin=None,
+				return_flow_from_bank=None,	evaporation_loss=None, total_loss=None,
+				volume_after_loss=None, volume_out=None, volume_stored_end_timestep=None,
+				# distances
+				cross_section=None, depth_water_level=None, width_water_level=None,
+				wetted_perimeter=None, hydraulic_radius=None,
+				# flow-characteristics
+				velocity=None, travel_time=None,
+				fraction_time_step=None, 
+				# storage-characteristics
+				storage_coeffecient=None,
+			):
+				s.runoff_per_area_in_watershed = runoff_per_area_in_watershed
+				s.swat_runoff = swat_runoff
+				s.total_volume_stored = total_volume_stored
+				s.volume_in = volume_in
+				s.discharge = discharge
+				s.transmission_loss = transmission_loss
+				s.bankin = bankin
+				s.return_flow_from_bank = return_flow_from_bank
+				s.evaporation_loss = evaporation_loss
+				s.total_loss = total_loss
+				s.volume_after_loss = volume_after_loss
+				s.volume_out = volume_out
+				s.volume_stored_end_timestep = volume_stored_end_timestep
+				s.cross_section = cross_section
+				s.depth_water_level = depth_water_level
+				s.width_water_level = width_water_level
+				s.wetted_perimeter = wetted_perimeter
+				s.hydraulic_radius = hydraulic_radius
+				s.velocity = velocity
+				s.travel_time = travel_time
+				s.fraction_time_step = fraction_time_step
+				s.storage_coeffecient = storage_coeffecient
+
+
+		def __init__(s, channel, transients=[]):
+			s.channel = channel
+			s.transients = transients
+
+
+		@staticmethod
+		def run_stream_model_for_time_step(
+			runoff_per_area_in_watershed, watershed_area,
+			storage_prev_timestep, volume_in,
+			length, width_bottom, channel_slope, fraction_deep_aquifer,
+			zch, hydraulic_conductivity, evaporation_coefficient,
+			mannigs, bank_flow_recession, potential_evaporation,
+			time_step_duration,
+		):
+
+			swat_runoff = runoff_per_area_in_watershed * watershed_area # * 10 ??
+
+			total_volume_stored = swat_runoff + storage_prev_timestep + volume_in
+
+			cross_section = total_volume_stored / length *1000
+
+			depth_water_level = math.sqrt((cross_section / zch) + (width_bottom/2 * zch)**2) - width_bottom/2 * zch
+
+			width_water_level = width_bottom + 2 * zch * depth_water_level
+
+			wetted_perimeter = width_bottom + 2 * depth_water_level * math.sqrt(1 + zch**2)
+
+			hydraulic_radius = cross_section / wetted_perimeter
+
+			discharge = cross_section * (hydraulic_radius**(2/3)) * (channel_slope**(1/2)) / mannigs
+
+			velocity = (hydraulic_radius**(2/3)) * (channel_slope**(1/2)) / mannigs
+
+			if discharge > 0:
+				travel_time = total_volume_stored / discharge
+			else:
+				travel_time = 0
+
+			storage_coeffecient = min(    (2 * time_step_duration) / (2*travel_time + time_step_duration)    ,    1    )
+
+			transmission_loss = min(
+				hydraulic_conductivity * length * wetted_perimeter * (travel_time/3600),
+				total_volume_stored
+			)
+
+			bankin = transmission_loss * ( 1- fraction_deep_aquifer )
+
+			return_flow_from_bank = bankin * ( 1 - math.exp( -bank_flow_recession))
+
+			fraction_time_step = min(    travel_time / time_step_duration  ,  1    )
+
+			evaporation_loss = evaporation_coefficient * potential_evaporation * length * width_water_level * fraction_time_step
+
+			total_loss = transmission_loss + evaporation_loss
+
+			volume_after_loss = max(    (total_volume_stored - total_loss)  ,  0    )
+
+			volume_out = volume_after_loss * storage_coeffecient
+
+			volume_stored_end_timestep = volume_after_loss - volume_out + return_flow_from_bank
+
+
+			return Drainage.Stream.Transient(
+				runoff_per_area_in_watershed, swat_runoff, total_volume_stored, volume_in, discharge,
+				transmission_loss, bankin, return_flow_from_bank, evaporation_loss, total_loss,
+				volume_after_loss, volume_out, volume_stored_end_timestep, cross_section,
+				depth_water_level, width_water_level, wetted_perimeter, hydraulic_radius,
+				velocity, travel_time, fraction_time_step, storage_coeffecient
+			)
+
+
+	class ConnectedStream(Stream):
+		"""Represents a stream with its adjacencies"""
+		
+		def __init__(s, channel, transients=[], sources=[], destination=[]):
+			super().__init__(channel, transients)
+			s.sources = sources
+			s.destination = destination
+
+	
+	def __init__(s, connected_streams):
+		s.connected_streams = connected_streams
+
+
+	def compute_drainage_model_transients_for_latest_time_step(s):
+		
+		for cs in s.connected_streams:
+			
+			volume_in = sum(css.transients[-1].volume_out for css in cs.sources)
+			
+			ch = cs.channel
+
+			cs.new_transient = Drainage.Stream.run_stream_model_for_time_step (
+				
+				cs.next_runoff_per_area_in_watershed, ch.watershed_area,
+				ch.length, ch.width_bottom,	ch.channel_slope, ch.fraction_deep_aquifer,
+				
+				cs.transients[-1].volume_stored_end_timestep, volume_in,
+				
+				ch.zch, ch.hydraulic_conductivity, ch.evaporation_coefficient,
+				ch.mannigs, ch.bank_flow_recession, ch.potential_evaporation,
+				
+				Drainage.Time_step_duration
+			)
+
+		for cs in s.connected_streams:
+			cs.transients.append(cs.new_transient)
