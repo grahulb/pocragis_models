@@ -512,9 +512,9 @@ class Drainage:
 				s.storage_coeffecient = storage_coeffecient
 
 
-		def __init__(s, channel, transients=[]):
+		def __init__(s, channel, transients=None):
 			s.channel = channel
-			s.transients = transients
+			s.transients = transients or []
 
 
 		@staticmethod
@@ -586,9 +586,9 @@ class Drainage:
 	class ConnectedStream(Stream):
 		"""Represents a stream with its adjacencies"""
 		
-		def __init__(s, channel, transients=[], sources=[], destination=[]):
+		def __init__(s, channel, transients=None, sources=None, destination=None):
 			super().__init__(channel, transients)
-			s.sources = sources
+			s.sources = sources or []
 			s.destination = destination
 
 	
@@ -599,7 +599,6 @@ class Drainage:
 	def compute_drainage_model_transients_for_latest_time_step(s):
 		
 		for cs in s.connected_streams:
-			
 			volume_in = sum(css.transients[-1].volume_out for css in cs.sources)
 			
 			ch = cs.channel
@@ -607,10 +606,9 @@ class Drainage:
 			cs.new_transient = Drainage.Stream.run_stream_model_for_time_step (
 				
 				cs.next_runoff_per_area_in_watershed, ch.watershed_area,
-				ch.length, ch.width_bottom,	ch.channel_slope, ch.fraction_deep_aquifer,
-				
 				cs.transients[-1].volume_stored_end_timestep, volume_in,
 				
+				ch.length, ch.width_bottom,	ch.channel_slope, ch.fraction_deep_aquifer,
 				ch.zch, ch.hydraulic_conductivity, ch.evaporation_coefficient,
 				ch.mannigs, ch.bank_flow_recession, ch.potential_evaporation,
 				

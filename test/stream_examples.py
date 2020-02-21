@@ -5,7 +5,7 @@ from datetime import datetime, date, timedelta
 from pocragis_models.models import Drainage
 
 
-os.chdir(os.path.dirname(__file__))
+os.chdir(os.path.dirname(os.path.realpath(__file__)))
 with open('example_drainage_input.csv', 'r', newline='') as f:
 	drainage_data = list(csv.DictReader(f))
 
@@ -18,6 +18,7 @@ for row in drainage_data:
 		]]),
 		[Drainage.Stream.Transient(volume_out=0, volume_stored_end_timestep=0)]
 	)
+	connected_streams[row['stream_id']].stream_id = row['stream_id']
 
 i = 1
 while str(i) in drainage_data[0].keys():
@@ -29,10 +30,8 @@ for row in drainage_data:
 		connected_streams[v.strip()] for v in row['sources'].split(',') if v.strip() != ''
 	])
 	connected_streams[row['stream_id']].runoffs = [float(row[str(i+1)]) for i in range(total_time_steps)]
-	connected_streams[row['stream_id']].id = row['stream_id']
 
 drainage = Drainage(list(connected_streams.values()))
-
 
 for i in range(total_time_steps):
 	
@@ -54,4 +53,4 @@ with open('example_drainage_output.csv', 'w', newline='') as f:
 	writer.writerow(['stream_id', 'time_step'] + fieldnames)
 	for cs in drainage.connected_streams:
 		for i in range(total_time_steps):
-			writer.writerow([cs.id, str(i)] + [getattr(cs.transients[i], fn) for fn in fieldnames])
+			writer.writerow([cs.stream_id, str(i)] + [getattr(cs.transients[i], fn) for fn in fieldnames])
