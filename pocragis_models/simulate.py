@@ -24,7 +24,7 @@ class PocraSMModelSimulation:
 	def __init__(self,
 		# field-related attributes
 		soil_texture=None, soil_depth_category=None, lulc_type=None, slope=None, field=None,
-		# simulation time-stepping; current options for step_unit are 'DAY' and 'HOUR'
+		# simulation time-stepping; current options for step_unit are 'DAY', 'HOUR' and 'SPREAD_DAILY_ET0_USING_HOURLY'
 		step_unit='DAY',
 		# weather-related attributes
 		weathers=None,
@@ -52,7 +52,7 @@ class PocraSMModelSimulation:
 		"""
 
 		self.field = field or Field(
-			soil_texture, soil_depth_category, lulc_type, slope, 24 if step_unit=='HOUR' else 1
+			soil_texture, soil_depth_category, lulc_type, slope, 1 if step_unit=='DAY' else 24
 		)
 		
 		self.step_unit = step_unit
@@ -73,7 +73,7 @@ class PocraSMModelSimulation:
 					w = self.weathers[i]
 					if step_unit == 'DAY':
 						w.day_of_year = self.model_state['day_of_year'] + i
-					elif step_unit == 'HOUR':
+					elif step_unit in ['HOUR', 'SPREAD_DAILY_ET0_USING_HOURLY']:
 						hour_of_year_at_start = (self.model_state['day_of_year']-1) * 24 + (self.model_state['hour_of_day']-1)
 						w.day_of_year = (((hour_of_year_at_start+i) // 24) + 1) % 365
 						w.hour_of_day = ((hour_of_year_at_start+i) % 24) + 1
@@ -176,9 +176,42 @@ class PocraSMModelSimulation:
 							self.sowing_date_offset = i
 							break
 
+		if self.step_unit == 'SPREAD_DAILY_ET0_USING_HOURLY':
+			et0_for_day = []; et0_weights = []; et0 = []; pet = []
+			for i in range(len(self.weathers)):
+				day_of_rain_year_idx = (self.weathers[i].day_of_year-152) if (self.weathers[i].day_of_year >= 152) else (213+self.weathers[i].day_of_year)
+				if self.sowing_date_offset <= day_of_rain_year_idx < (self.sowing_date_offset + len(self.crop.kc)):
+					kc = self.crop.kc[day_of_rain_year_idx - self.sowing_date_offset]
+				else:
+					kc = 0
+				
+				et0_for_day.append(Water.get_pocra_pet_for_time_step(kc, **self.weathers[i].__dict__)[1])
+
+				if self.weathers[i].hour_of_day == 24:
+					
+					wthr_copy = self.weathers[i].__dict__.copy()
+					wthr_copy['hour_of_day'] = None
+					daily_model_et0 = Water.get_pocra_pet_for_time_step(kc, **wthr_copy)[1]
+					
+					et0_sum_for_day = sum(et0_for_day)
+					new_hourly_et0_for_day = [daily_model_et0*et0_for_hour/et0_sum_for_day for et0_for_hour in et0_for_day]
+					et0.extend(new_hourly_et0_for_day)
+					pet.extend([
+						Water.get_pocra_pet_for_time_step(kc, new_et0_for_hour)[2]
+							for new_et0_for_hour in new_hourly_et0_for_day
+					])
+
+					et0_for_day = []
+			self.et0 = et0
+			self.pet = pet
+			# print(self.pet)
+
+
+
 
 	def iterate(s):
 		f = s.field
+		
 		for i in range(len(s.weathers)):
 			if s.pet is None:
 				day_of_rain_year_idx = (s.weathers[i].day_of_year-152) if (s.weathers[i].day_of_year >= 152) else (213+s.weathers[i].day_of_year)
